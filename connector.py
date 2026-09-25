@@ -1,5 +1,5 @@
 import asyncpg
-from dotenv import getenv
+from dotenv import load_dotenv
 import os
 
 load_dotenv()
@@ -17,15 +17,20 @@ async def get_connection():
 
 async def create_tables():
     connection = await get_connection()
-
     try:
+        await connection.execute("""
+            CREATE TABLE IF NOT EXISTS users(
+                id SERIAL PRIMARY KEY,
+                username VARCHAR(100) UNIQUE NOT NULL,
+                password VARCHAR(255) NOT NULL
+            )
+        """)
         await connection.execute("""
             CREATE TABLE IF NOT EXISTS categories(
                 id SERIAL PRIMARY KEY,
                 name VARCHAR(100) UNIQUE NOT NULL
             )
         """)
-
         await connection.execute("""
             CREATE TABLE IF NOT EXISTS dishes(
                 id SERIAL PRIMARY KEY,
@@ -35,7 +40,6 @@ async def create_tables():
                 ON DELETE SET NULL
             )
         """)
-
         await connection.execute("""
             CREATE TABLE IF NOT EXISTS orders(
                 id SERIAL PRIMARY KEY,
@@ -44,12 +48,14 @@ async def create_tables():
                 ON DELETE SET NULL,
                 quantity INTEGER NOT NULL,
                 total_price NUMERIC(10, 2) NOT NULL,
+                user_id INTEGER REFERENCES users(id)
+                ON DELETE CASCADE,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
+        print("Таблицы созданы")
 
     except Exception as error:
         print("Ошибка:", error)
-
     finally:
         await connection.close()
